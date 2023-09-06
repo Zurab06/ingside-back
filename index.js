@@ -1,21 +1,42 @@
 import express from "express";
-import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
-import { registerValidator } from "./validations/validations.js";
-import { validationResult } from "express-validator";
-import UserModel from "./models/User.model.js"
-import bcrypt from 'bcrypt'
-import { secretKey } from "./secret.mjs";
+import { loginValidator, postValidator, registerValidator } from "./validations/validations.js";
 import checkAuth from "./utils/checkAuth.js";
 import * as UserController from "./controllers/UserController.js";
+import * as PostController from "./controllers/PostController.js"
+import multer from "multer";
+import handleValidationErrors from "./utils/handleValidationErrors.js";
 
 const app = express()
 app.use(express.json())
+app.use('/uploads',express.static('uploads'))
 
-app.get('/auth/me', checkAuth,UserController.getMe)
-app.post('/auth/login',UserController.login)
-app.post('/auth/register', registerValidator,UserController.register)
+const storage = multer.diskStorage({
+    destination: (_, __, cb) => {
+        cb(null, 'uploads')
+    },
+    filename: (_, file, cb) => {
+        cb(null, file.originalname)
+    }
+})
+const upload = multer({ storage })
 
+app.get('/auth/me', checkAuth, UserController.getMe)
+app.post('/auth/login',loginValidator, handleValidationErrors, UserController.login)
+app.post('/auth/register' , registerValidator,handleValidationErrors,  UserController.register)
+
+app.post('/upload', checkAuth, upload.single('image'), (req, res) => {
+    res.json({
+        url: `/uploads/${req.file.originalname}`
+    })
+})
+
+
+app.get('/posts/:id', PostController.getOne)
+app.post('/posts/', checkAuth, postValidator, registerValidator,PostController.createPost)
+app.get('/posts', PostController.getAll)
+app.delete('/posts/:id', checkAuth, PostController.remove)
+app.patch('/posts/:id', checkAuth,registerValidator, PostController.update)
 
 mongoose.connect('mongodb+srv://gaunt0066:Panzerkampf06@cluster0.6m4r7dq.mongodb.net/ingside?retryWrites=true&w=majority').then(() => {
     console.log('mongo connected');

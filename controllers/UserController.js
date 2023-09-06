@@ -1,6 +1,4 @@
-import express from "express";
 import jwt from "jsonwebtoken";
-import mongoose from "mongoose";
 import { validationResult } from "express-validator";
 import UserModel from "../models/User.model.js"
 import bcrypt from 'bcrypt'
@@ -9,10 +7,6 @@ import { secretKey } from "../secret.mjs";
 
 export const register = async (req, res) => {
     try {
-        const errors = validationResult(req)
-        if (!errors.isEmpty()) {
-            return res.status(400).json(errors.array())
-        }
         const password = req.body.password
         const salt = await bcrypt.genSalt(10)
         const hash = await bcrypt.hash(password, salt)
